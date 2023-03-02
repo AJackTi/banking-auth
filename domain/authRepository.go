@@ -3,8 +3,8 @@ package domain
 import (
 	"database/sql"
 
-	"github.com/AJackTi/banking-auth/errs"
-	"github.com/AJackTi/banking-auth/logger"
+	"github.com/AJackTi/banking-lib/errs"
+	"github.com/AJackTi/banking-lib/logger"
 	"github.com/jmoiron/sqlx"
 )
 

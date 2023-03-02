@@ -9,8 +9,8 @@ import (
 
 	"github.com/AJackTi/banking-auth/component/hasher"
 	"github.com/AJackTi/banking-auth/domain"
-	"github.com/AJackTi/banking-auth/logger"
 	"github.com/AJackTi/banking-auth/service"
+	"github.com/AJackTi/banking-lib/logger"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 

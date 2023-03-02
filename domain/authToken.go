@@ -1,8 +1,8 @@
 package domain
 
 import (
-	"github.com/AJackTi/banking-auth/errs"
-	"github.com/AJackTi/banking-auth/logger"
+	"github.com/AJackTi/banking-lib/errs"
+	"github.com/AJackTi/banking-lib/logger"
 	"github.com/golang-jwt/jwt/v4"
 )
 

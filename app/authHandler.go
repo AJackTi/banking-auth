@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/AJackTi/banking-auth/dto"
-	"github.com/AJackTi/banking-auth/logger"
 	"github.com/AJackTi/banking-auth/service"
+	"github.com/AJackTi/banking-lib/logger"
 )
 
 type AuthHandler struct {
