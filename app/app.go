@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/AJackTi/banking-auth/component/hasher"
 	"github.com/AJackTi/banking-auth/domain"
 	"github.com/AJackTi/banking-auth/logger"
 	"github.com/AJackTi/banking-auth/service"
@@ -20,10 +21,11 @@ func Start() {
 	sanityCheck()
 	router := mux.NewRouter()
 	authRepository := domain.NewAuthRepository(getDbClient())
-	ah := AuthHandler{service.NewLoginService(authRepository, domain.GetRolePermissions())}
+	hasher := hasher.NewMd5Hash()
+	ah := AuthHandler{service.NewAuthService(authRepository, domain.GetRolePermissions(), hasher)}
 
 	router.HandleFunc("/auth/login", ah.Login).Methods(http.MethodPost)
-	router.HandleFunc("/auth/register", ah.NotImplementedHandler).Methods(http.MethodPost)
+	router.HandleFunc("/auth/register", ah.Register).Methods(http.MethodPost)
 	router.HandleFunc("/auth/refresh", ah.Refresh).Methods(http.MethodPost)
 	router.HandleFunc("/auth/verify", ah.Verify).Methods(http.MethodGet)
 

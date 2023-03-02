@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/AJackTi/banking-auth/dto"
@@ -13,14 +14,25 @@ type AuthHandler struct {
 	service service.AuthService
 }
 
-func (h AuthHandler) NotImplementedHandler(w http.ResponseWriter, r *http.Request) {
-	writeResponse(w, http.StatusOK, "Handler not implemented...")
+func (h AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var registerRequest dto.RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&registerRequest); err != nil {
+		logger.Error(fmt.Sprintf("Error while decoding register request: %v\n", err.Error()))
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		response, appErr := h.service.Register(&registerRequest)
+		if appErr != nil {
+			writeResponse(w, appErr.Code, appErr.AsMessage())
+			return
+		}
+		writeResponse(w, http.StatusOK, response)
+	}
 }
 
 func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginRequest dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&loginRequest); err != nil {
-		logger.Error("Error while decoding login request: " + err.Error())
+		logger.Error(fmt.Sprintf("Error while decoding login request: %v\n", err.Error()))
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
 		token, appErr := h.service.Login(loginRequest)

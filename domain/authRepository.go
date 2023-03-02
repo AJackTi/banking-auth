@@ -10,8 +10,10 @@ import (
 
 type AuthRepository interface {
 	FindBy(username string, password string) (*Login, *errs.AppError)
+	FindByUsername(username string) (*UserResponse, *errs.AppError)
 	GenerateAndSaveRefreshTokenToStore(authToken AuthToken) (string, *errs.AppError)
 	RefreshTokenExists(refreshToken string) *errs.AppError
+	CreateUser(*RegisterRequest) (*RegisterResponse, *errs.AppError)
 }
 
 type AuthRepositoryDb struct {
@@ -66,7 +68,25 @@ func (d AuthRepositoryDb) FindBy(username, password string) (*Login, *errs.AppEr
 			return nil, errs.NewUnexpectedError("Unexpected database error")
 		}
 	}
+
 	return &login, nil
+}
+
+func (d AuthRepositoryDb) FindByUsername(username string) (*UserResponse, *errs.AppError) {
+	var user UserResponse
+	sqlFind := `SELECT u.username, u.customer_id, u.role, group_concat(a.account_id) as account_numbers, u.password, u.salt FROM users u
+                  LEFT JOIN accounts a ON a.customer_id = u.customer_id
+                WHERE u.username = ?
+                GROUP BY u.customer_id`
+	err := d.client.Get(&user, sqlFind, username)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, errs.NewUnexpectedError("Unexpected database error")
+		}
+		return nil, nil
+	}
+
+	return &user, nil
 }
 
 func NewAuthRepository(client *sqlx.DB) AuthRepositoryDb {

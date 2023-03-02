@@ -15,6 +15,12 @@ type Login struct {
 	Role       string         `db:"role"`
 }
 
+type UserResponse struct {
+	Login
+	Password string `db:"password"`
+	Salt     string `db:"salt"`
+}
+
 func (l Login) ClaimsForAccessToken() AccessTokenClaims {
 	if l.Accounts.Valid && l.CustomerId.Valid {
 		return l.claimsForUser()

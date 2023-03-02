@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/AJackTi/banking-auth/common"
 	"github.com/AJackTi/banking-auth/domain"
 	"github.com/AJackTi/banking-auth/dto"
 	"github.com/AJackTi/banking-auth/errs"
@@ -10,8 +11,13 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+type Hasher interface {
+	Hash(string) string
+}
+
 type AuthService interface {
 	Login(dto.LoginRequest) (*dto.LoginResponse, *errs.AppError)
+	Register(*dto.RegisterRequest) (*dto.RegisterResponse, *errs.AppError)
 	Verify(urlParams map[string]string) *errs.AppError
 	Refresh(request dto.RefreshTokenRequest) (*dto.LoginResponse, *errs.AppError)
 }
@@ -19,6 +25,13 @@ type AuthService interface {
 type DefaultAuthService struct {
 	repo            domain.AuthRepository
 	rolePermissions domain.RolePermissions
+	hasher          Hasher
+}
+
+func NewAuthService(repo domain.AuthRepository,
+	permissions domain.RolePermissions,
+	hasher Hasher) DefaultAuthService {
+	return DefaultAuthService{repo, permissions, hasher}
 }
 
 func (s DefaultAuthService) Refresh(request dto.RefreshTokenRequest) (*dto.LoginResponse, *errs.AppError) {
@@ -45,9 +58,15 @@ func (s DefaultAuthService) Login(req dto.LoginRequest) (*dto.LoginResponse, *er
 	var (
 		appErr *errs.AppError
 		login  *domain.Login
+		user   *domain.UserResponse
 	)
 
-	if login, appErr = s.repo.FindBy(req.Username, req.Password); appErr != nil {
+	if user, appErr = s.repo.FindByUsername(req.Username); appErr != nil {
+		return nil, appErr
+	}
+
+	password := s.hasher.Hash(req.Password + user.Salt)
+	if login, appErr = s.repo.FindBy(req.Username, password); appErr != nil {
 		return nil, appErr
 	}
 
@@ -64,6 +83,37 @@ func (s DefaultAuthService) Login(req dto.LoginRequest) (*dto.LoginResponse, *er
 	}
 
 	return &dto.LoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+
+func (s DefaultAuthService) Register(req *dto.RegisterRequest) (*dto.RegisterResponse, *errs.AppError) {
+	var (
+		appErr *errs.AppError
+		user   *domain.UserResponse
+	)
+
+	if user, appErr = s.repo.FindByUsername(req.Username); appErr != nil {
+		return nil, appErr
+	}
+
+	if user != nil {
+		return nil, errs.NewConfictError("An account with this username already exists, please try again with a different username.")
+	}
+
+	// Hash password
+	salt := common.GenSalt(50)
+	req.Password = s.hasher.Hash(req.Password + salt)
+
+	response, err := s.repo.CreateUser(&domain.RegisterRequest{
+		Username:   req.Username,
+		Password:   req.Password,
+		Salt:       salt,
+		CustomerID: req.CustomerID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.RegisterResponse{Username: response.Username}, nil
 }
 
 func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {
@@ -107,8 +157,4 @@ func jwtTokenFromString(tokenString string) (*jwt.Token, error) {
 		return nil, err
 	}
 	return token, nil
-}
-
-func NewLoginService(repo domain.AuthRepository, permissions domain.RolePermissions) DefaultAuthService {
-	return DefaultAuthService{repo, permissions}
 }
